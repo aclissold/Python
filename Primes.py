@@ -5,3 +5,5 @@ for n in range(2, 5000):
             break
     else:
         print(n, end=' ')
+print()
+wait = input("Press enter to continue...")
