@@ -16,11 +16,14 @@ if __name__ == '__main__':
     while True:
         song = commands.getstatusoutput('spotout.sh')[1]
         if song != 'SPOTIFY' and song != '':
-            song = spaces + song + spaces
-            song = song.replace('&', '+')
-            song = song.replace("'", "`")
-            for i in range(len(song) - 20):
-                display = song[i:i+20]
+            song_with_spaces = spaces + song + spaces
+            song_with_spaces = song_with_spaces.replace('&', '+')
+            song_with_spaces = song_with_spaces.replace("'", "`")
+            for i in range(len(song_with_spaces) - 20):
+                if song != commands.getstatusoutput('spotout.sh')[1]:
+                    print("Failing! song, spotout.sh:")
+                    break
+                display = song_with_spaces[i:i+20]
                 subprocess.call(['echo \'spotwidget.text = " ' + display + ' "\' | awesome-client'], shell=True)
                 sleep(0.3)
                 if i == 20:
