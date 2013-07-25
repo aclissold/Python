@@ -19,6 +19,7 @@ if __name__ == '__main__':
             song_with_spaces = spaces + song + spaces
             song_with_spaces = song_with_spaces.replace('&', '+')
             song_with_spaces = song_with_spaces.replace("'", "`")
+            song_with_spaces = song_with_spaces.replace("ä", "a")
             for i in range(len(song_with_spaces) - 20):
                 if song != commands.getstatusoutput('spotout.sh')[1]:
                     print("Failing! song, spotout.sh:")
