@@ -1,4 +1,5 @@
 #!/usr/bin/python2
+# -*- coding: utf-8 -*-
 
 """Runs in the background on my Awesome setup to display Spotify info.
 
