@@ -1,1 +1,3 @@
-Everything I've ever written in Python, ever.
+Python
+======
+A random collection of Python things that don't deserve their own repos.
