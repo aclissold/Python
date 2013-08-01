@@ -26,11 +26,10 @@ buffers its output, rainbowize will not receive any output until flushed.
 """
 
 import os
-import pty
-import subprocess
-import threading
 import queue
+import subprocess
 import sys
+import threading
 import time
 
 class AsynQueueRead(threading.Thread):
@@ -55,6 +54,7 @@ class AsynQueueRead(threading.Thread):
 
 class Rainbowizer:
     """A class with which to rainbowize."""
+
     def __init__(self):
         """Save the color codes to a list and instantiate the process object."""
         self.colors = [
@@ -64,18 +64,19 @@ class Rainbowizer:
                 '\033[38;5;121m', '\033[38;5;122m', '\033[38;5;123m',
                 '\033[38;5;117m', '\033[38;5;111m', '\033[38;5;105m',
                 '\033[38;5;99m', '\033[38;5;93m']
-        self.p = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        self.proc = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                universal_newlines=True)
         self.queue = queue.Queue()
-        self.async_queue_stdout = AsynQueueRead(self.p.stdout, self.queue)
-        self.async_queue_stderr = AsynQueueRead(self.p.stderr, self.queue)
+        self.async_queue_stdout = AsynQueueRead(self.proc.stdout, self.queue)
+        self.async_queue_stderr = AsynQueueRead(self.proc.stderr, self.queue)
         self.async_queue_stdout.start()
         self.async_queue_stderr.start()
 
     def rainbowize(self):
         """Listen to the output of p and apply color codes to it."""
-        # pty is imported and used to bypass the process buffering its stream
-        i = 0
 
+        i = 0
         while not self.async_queue_stdout.done() and not self.async_queue_stderr.done():
             while not self.queue.empty():
                 line = self.queue.get()
@@ -87,14 +88,14 @@ class Rainbowizer:
                         # Reverse the list to avoid counting backwards
                         self.colors.reverse()
                         i = 0
-            time.sleep(.1)
+            time.sleep(0.1)
         self.async_queue_stdout.join()
         self.async_queue_stderr.join()
-        self.p.stdout.close()
-        self.p.stderr.close()
+        self.proc.stdout.close()
+        self.proc.stderr.close()
 
-        self.p.poll()
-        return self.p.returncode
+        self.proc.poll()
+        return self.proc.returncode
 
 if __name__ == "__main__":
     Rainbowizer().rainbowize()
