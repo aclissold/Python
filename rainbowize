@@ -28,7 +28,30 @@ buffers its output, rainbowize will not receive any output until flushed.
 import os
 import pty
 import subprocess
+import threading
+import queue
 import sys
+import time
+
+class AsynQueueRead(threading.Thread):
+    """ Allows a subprocess to be logged asyc """
+
+    def __init__(self, fd, queue):
+        #assert isinstance(queue, queue.Queue)
+        assert callable(fd.readline)
+        threading.Thread.__init__(self)
+        self.fd = fd
+        self.queue = queue
+
+    def run(self):
+        for line in iter(self.fd.readline, ''):
+            if line[-1]=='\n':
+                line=line[:-1]
+
+            self.queue.put(line)
+
+    def done(self):
+        return not self.is_alive() and self.queue.empty()
 
 class Rainbowizer:
     """A class with which to rainbowize."""
@@ -41,26 +64,37 @@ class Rainbowizer:
                 '\033[38;5;121m', '\033[38;5;122m', '\033[38;5;123m',
                 '\033[38;5;117m', '\033[38;5;111m', '\033[38;5;105m',
                 '\033[38;5;99m', '\033[38;5;93m']
-        self.master, self.slave = pty.openpty()
-        self.p = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE,
-                stdout=self.slave, stderr=self.slave, close_fds=True,
-                universal_newlines=True)
+        self.p = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        self.queue = queue.Queue()
+        self.async_queue_stdout = AsynQueueRead(self.p.stdout, self.queue)
+        self.async_queue_stderr = AsynQueueRead(self.p.stderr, self.queue)
+        self.async_queue_stdout.start()
+        self.async_queue_stderr.start()
 
     def rainbowize(self):
         """Listen to the output of p and apply color codes to it."""
         # pty is imported and used to bypass the process buffering its stream
-        stdout = os.fdopen(self.master)
         i = 0
-        while not stdout.closed:
-            line = stdout.readline()
-            if line != '':
-                # Preprend the color to the line
-                print(self.colors[i] + line, end='')
-                i += 1
-                if i == 15:
-                    # Reverse the list to avoid counting backwards
-                    self.colors.reverse()
-                    i = 0
+
+        while not self.async_queue_stdout.done() and not self.async_queue_stderr.done():
+            while not self.queue.empty():
+                line = self.queue.get()
+                if line != '':
+                    # Preprend the color to the line
+                    print(self.colors[i] + line, end='\n')
+                    i += 1
+                    if i == 15:
+                        # Reverse the list to avoid counting backwards
+                        self.colors.reverse()
+                        i = 0
+            time.sleep(.1)
+        self.async_queue_stdout.join()
+        self.async_queue_stderr.join()
+        self.p.stdout.close()
+        self.p.stderr.close()
+
+        self.p.poll()
+        return self.p.returncode
 
 if __name__ == "__main__":
     Rainbowizer().rainbowize()
