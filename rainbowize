@@ -22,7 +22,7 @@ or
 
 Note: you are at the mercy of the process you are calling. If that process
 buffers its output, rainbowize will not receive any output until flushed.
-    
+
 """
 
 import os
@@ -98,4 +98,7 @@ class Rainbowizer:
         return self.proc.returncode
 
 if __name__ == "__main__":
-    Rainbowizer().rainbowize()
+    try:
+        Rainbowizer().rainbowize()
+    except KeyboardInterrupt:
+        exit(0)
